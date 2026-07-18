@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.env
+.venv/
+sample_upload.jpg
+sample_clean.png
+sample_clean.pdf

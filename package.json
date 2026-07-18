@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "test": "py -3.11 -m unittest discover -s tests -v && node --check oneclickxerox/static/app.js"
+  }
+}

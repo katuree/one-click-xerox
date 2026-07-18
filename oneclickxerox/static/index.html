@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>One Click Xerox</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <p class="eyebrow">For Xerox shop owners</p>
+      <h1>Clean WhatsApp document photos in one click.</h1>
+      <p class="subtitle">Upload a dark certificate, ID, marksheet, or receipt photo. Download a print-ready PNG, JPG, or PDF.</p>
+    </section>
+
+    <section class="card uploader">
+      <label class="dropzone" id="dropzone">
+        <input id="file" type="file" accept="image/*" />
+        <span class="drop-title">Upload WhatsApp image</span>
+        <span class="drop-help">Drag & drop or click to select</span>
+      </label>
+
+      <div class="controls">
+        <label>Cleanup mode
+          <select id="mode">
+            <option value="clean_bw">Clean B/W - best for Xerox</option>
+            <option value="soft_gray">Soft Gray - preserve stamps/signature</option>
+            <option value="color_xerox">Color Xerox - bright color copy</option>
+            <option value="photo_xerox">Photo Xerox - keep natural colors</option>
+            <option value="color_certificate">Color Certificate - preserve color</option>
+          </select>
+        </label>
+        <label>Download format
+          <select id="format">
+            <option value="png">PNG preview</option>
+            <option value="jpg">JPG</option>
+            <option value="pdf">A4-ready PDF</option>
+          </select>
+        </label>
+      </div>
+
+      <button id="cleanBtn" disabled>Clean Now</button>
+      <p id="status" role="status"></p>
+    </section>
+
+    <section class="preview-grid">
+      <article class="card">
+        <h2>Original</h2>
+        <img id="originalPreview" alt="Original uploaded document preview" />
+      </article>
+      <article class="card">
+        <h2>Cleaned Output</h2>
+        <img id="cleanPreview" alt="Cleaned document preview" />
+        <div class="output-actions">
+          <a id="downloadLink" class="download" hidden>Download cleaned file</a>
+          <button id="printBtn" type="button" hidden>Print cleaned file</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="card notes">
+      <h2>Safety rule</h2>
+      <p>This tool only cleans shadows, contrast, crop-readiness, and print clarity. It does not edit certificate content.</p>
+    </section>
+  </main>
+  <section id="printDialog" class="print-dialog" hidden aria-hidden="true">
+    <div class="print-panel" role="dialog" aria-modal="true" aria-labelledby="printTitle">
+      <div class="print-toolbar">
+        <div>
+          <p class="eyebrow">Print preview</p>
+          <h2 id="printTitle">Check before printing</h2>
+        </div>
+        <button id="closePrintBtn" type="button" class="ghost-button">Close</button>
+      </div>
+
+      <div class="print-layout">
+        <aside class="print-settings">
+          <div class="settings-group">
+            <h3>Printer</h3>
+            <p class="paper-info">Choose printer / Save as PDF in the browser dialog after this preview.</p>
+          </div>
+
+          <div class="settings-group">
+            <h3>Pages</h3>
+            <label>Print pages
+              <select id="pageRange">
+                <option value="all">All pages</option>
+                <option value="first">First page only</option>
+                <option value="custom">Custom range</option>
+              </select>
+            </label>
+            <label>Custom range
+              <input id="customPageRange" type="text" placeholder="Example: 1-2,4" />
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>Paper</h3>
+            <label>Paper size
+              <select id="paperSize">
+                <option value="a3">A3 - poster</option>
+                <option value="a4" selected>A4 - document</option>
+                <option value="a5">A5 - half page</option>
+                <option value="letter">Letter</option>
+                <option value="legal">Legal</option>
+                <option value="photo-4x6">Photo 4×6</option>
+                <option value="photo-5x7">Photo 5×7</option>
+                <option value="id-card">ID Card</option>
+                <option value="passport">Passport Photo</option>
+              </select>
+            </label>
+            <p id="paperInfo" class="paper-info">A4 • 210 × 297 mm</p>
+            <label>Orientation
+              <select id="orientation">
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>Copies & layout</h3>
+            <label>Total prints
+              <input id="copies" type="number" min="1" max="100" value="1" />
+            </label>
+            <label>Images per page
+              <select id="copiesPerPage">
+                <option value="1">1 per page</option>
+                <option value="2">2 per page</option>
+                <option value="4">4 per page</option>
+                <option value="6">6 per page</option>
+                <option value="8">8 per page</option>
+                <option value="9">9 per page</option>
+              </select>
+            </label>
+            <label>Spacing
+              <select id="printGap">
+                <option value="0">No gap</option>
+                <option value="4" selected>Small gap</option>
+                <option value="8">Medium gap</option>
+                <option value="12">Large gap</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>Quality</h3>
+            <label>Color
+              <select id="colorMode">
+                <option value="color">Color</option>
+                <option value="bw">Black & white</option>
+              </select>
+            </label>
+            <label>Margins
+              <select id="marginMode">
+                <option value="none">None</option>
+                <option value="small" selected>Small</option>
+                <option value="default">Default</option>
+              </select>
+            </label>
+            <label>Scale
+              <select id="scaleMode">
+                <option value="fit">Fit to page</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+            <label>Scale percent
+              <input id="scalePercent" type="number" min="25" max="200" value="100" />
+            </label>
+            <label>Fit
+              <select id="fitMode">
+                <option value="contain">Fit whole page</option>
+                <option value="cover">Fill page</option>
+                <option value="actual">Actual size</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="settings-group">
+            <h3>Position</h3>
+            <label>X position
+              <input id="offsetX" type="range" min="-100" max="100" value="0" />
+            </label>
+            <label>Y position
+              <input id="offsetY" type="range" min="-100" max="100" value="0" />
+            </label>
+            <button id="resetPositionBtn" type="button" class="ghost-button">Center image</button>
+          </div>
+
+          <div class="settings-group">
+            <h3>Options</h3>
+            <label class="check-row">
+              <input id="showCutLines" type="checkbox" checked />
+              Show cut lines
+            </label>
+            <label class="check-row">
+              <input id="includeBackground" type="checkbox" checked />
+              Background
+            </label>
+          </div>
+
+          <p id="pageCount" class="print-help">1 page ready.</p>
+          <button id="confirmPrintBtn" type="button">Open system print</button>
+          <p class="print-help">Tip: this custom panel prepares the exact pages; the browser dialog only chooses the printer.</p>
+        </aside>
+
+        <div class="print-preview-wrap">
+          <div id="printPreviewPages" class="print-preview-pages">
+            <div id="printPreviewPage" class="print-preview-page">
+              <img id="printPreviewImage" alt="Print preview of cleaned document" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="printArea" aria-hidden="true">
+    <div id="printPages"></div>
+    <img id="printImage" alt="Cleaned document ready to print" hidden />
+  </section>
+  <script src="/static/app.js"></script>
+</body>
+</html>
