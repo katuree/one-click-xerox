@@ -146,14 +146,18 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("cleanImageInBrowser", script)
         self.assertIn("Static GitHub Pages has no API", script)
 
-    def test_static_browser_cleanup_uses_adaptive_shadow_normalization(self):
+    def test_static_browser_cleanup_uses_python_matched_threshold_and_median_cleanup(self):
         script = (STATIC / "app.js").read_text(encoding="utf-8")
 
         self.assertIn("function normalizeIllumination", script)
         self.assertIn("function buildIntegral", script)
         self.assertIn("function localMean", script)
-        self.assertIn("const normalizedIntegral = buildIntegral(normalizedGray, width, height);", script)
-        self.assertIn("localPaper - 24", script)
+        self.assertIn("Math.min(width, height) / 18", script)
+        self.assertIn("function median3x3BW", script)
+        self.assertIn("const contrastedIntegral = buildIntegral(contrasted, width, height);", script)
+        self.assertIn("const shadowOffset = localPaper < 205 ? 22 : 11;", script)
+        self.assertIn("const threshold = Math.min(232, localPaper - shadowOffset);", script)
+        self.assertNotIn("localPaper - 24", script)
         self.assertNotIn("const out = bright < 188 ? 0 : 255;", script)
 
 

@@ -268,7 +268,9 @@ function makeLuminance(data) {
 }
 
 function normalizeIllumination(values, width, height) {
-  const radius = Math.max(12, Math.round(Math.min(width, height) / 38));
+  // Match the Python cleaner: use a large local background estimate so shadows
+  // are removed without following handwriting strokes or phone watermarks.
+  const radius = Math.max(15, Math.round(Math.min(width, height) / 18));
   const integral = buildIntegral(values, width, height);
   const normalized = new Float32Array(values.length);
   for (let y = 0; y < height; y += 1) {
@@ -281,6 +283,28 @@ function normalizeIllumination(values, width, height) {
   return normalized;
 }
 
+function median3x3BW(source, width, height) {
+  const filtered = new Uint8Array(source.length);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let blackCount = 0;
+      let total = 0;
+      for (let dy = -1; dy <= 1; dy += 1) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= height) continue;
+        for (let dx = -1; dx <= 1; dx += 1) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= width) continue;
+          total += 1;
+          if (source[yy * width + xx] === 0) blackCount += 1;
+        }
+      }
+      filtered[y * width + x] = blackCount > total / 2 ? 0 : 255;
+    }
+  }
+  return filtered;
+}
+
 function cleanPixels(imageData, mode) {
   const data = imageData.data;
   const { width, height } = imageData;
@@ -289,12 +313,26 @@ function cleanPixels(imageData, mode) {
   const grayStats = channelStats(normalizedGray);
 
   if (mode === 'clean_bw') {
-    const normalizedIntegral = buildIntegral(normalizedGray, width, height);
+    // Match Python path: normalized -> autocontrast -> local threshold
+    // threshold = min(232, local - 11), then a 3x3 median cleanup.
+    const contrasted = new Float32Array(normalizedGray.length);
+    for (let p = 0; p < normalizedGray.length; p += 1) {
+      contrasted[p] = stretchValue(normalizedGray[p], grayStats.low, grayStats.high);
+    }
+    const contrastedIntegral = buildIntegral(contrasted, width, height);
+    const rawBW = new Uint8Array(contrasted.length);
+    for (let p = 0; p < contrasted.length; p += 1) {
+      const localPaper = localMean(contrastedIntegral, width, height, p % width, Math.floor(p / width), 9);
+      // Phone watermarks and camera edge shadows create dense dark patches. The
+      // Python Gaussian path naturally softens those areas; compensate in JS by
+      // lowering the threshold only when the local paper estimate is dark.
+      const shadowOffset = localPaper < 205 ? 22 : 11;
+      const threshold = Math.min(232, localPaper - shadowOffset);
+      rawBW[p] = contrasted[p] < threshold ? 0 : 255;
+    }
+    const filteredBW = median3x3BW(rawBW, width, height);
     for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
-      const bright = stretchValue(normalizedGray[p], grayStats.low, grayStats.high);
-      const localPaper = localMean(normalizedIntegral, width, height, p % width, Math.floor(p / width), 10);
-      const threshold = Math.max(135, Math.min(210, localPaper - 24));
-      const out = bright < threshold ? 0 : 255;
+      const out = filteredBW[p];
       data[i] = out; data[i + 1] = out; data[i + 2] = out;
     }
     return imageData;
