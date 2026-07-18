@@ -1,24 +1,26 @@
 # One Click Xerox
 
-Private source repository for One Click Xerox.
-
 Public website:
-https://katuree.github.io/one-click-xerox-site/
+http://one-click.katuree.com/
 
-Public deploy repository:
-https://github.com/katuree/one-click-xerox-site
+GitHub repository:
+https://github.com/katuree/one-click-xerox
 
 One Click Xerox is a browser-based prototype for Xerox shop owners. It converts dark or messy WhatsApp camera photos of certificates, IDs, marksheets, receipts, and other documents into cleaner print-ready PNG, JPG, or PDF files.
 
-## Current public hosting
+## Public hosting
 
-The main source repository is private. The public website is deployed from a separate public GitHub Pages repository because GitHub Pages for private repositories is not available on the current GitHub plan.
+This project uses a single public GitHub repository. GitHub Pages serves the public website from the `docs/` folder on the `main` branch.
 
-The custom domain `one-click.katuree.com` is not active right now because its DNS record is not configured. Until DNS is ready, use the public GitHub Pages URL above.
+The website custom domain is:
+
+http://one-click.katuree.com/
+
+DNS for `one-click.katuree.com` must point to `katuree.github.io` for the domain to load.
 
 ## Search indexing
 
-The public site is intentionally not submitted to Google Search yet.
+The site is intentionally not submitted to Google Search yet.
 
 The deployed site includes:
 
@@ -43,12 +45,7 @@ http://127.0.0.1:8088
 npm run test
 ```
 
-This runs:
-
-- FastAPI endpoint tests
-- image processor tests
-- static UI checks
-- JavaScript syntax check
+This runs FastAPI endpoint tests, image processor tests, static UI checks, and JavaScript syntax checks.
 
 ## Current MVP features
 
