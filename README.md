@@ -1,7 +1,7 @@
 # One Click Xerox
 
 Public website:
-http://one-click.katuree.com/
+https://one-click.katuree.com/
 
 GitHub repository:
 https://github.com/katuree/one-click-xerox
@@ -14,7 +14,7 @@ This project uses a single public GitHub repository. GitHub Pages serves the pub
 
 The website custom domain is:
 
-http://one-click.katuree.com/
+https://one-click.katuree.com/
 
 DNS for `one-click.katuree.com` must point to `katuree.github.io` for the domain to load.
 
