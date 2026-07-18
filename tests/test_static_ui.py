@@ -4,6 +4,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = ROOT / "oneclickxerox" / "static"
+DOCS = ROOT / "docs"
 
 
 class StaticUiTests(unittest.TestCase):
@@ -129,9 +130,15 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("position: sticky", css)
         self.assertIn("top: 0", css)
 
-    def test_github_pages_build_is_noindex_and_relative(self):
+    def test_local_fastapi_static_build_uses_static_asset_urls(self):
         html = (STATIC / "index.html").read_text(encoding="utf-8")
-        script = (STATIC / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('href="/static/styles.css"', html)
+        self.assertRegex(html, r'src="/static/app\.js(?:\?v=[^"]+)?"')
+
+    def test_github_pages_build_is_noindex_and_relative(self):
+        html = (DOCS / "index.html").read_text(encoding="utf-8")
+        script = (DOCS / "app.js").read_text(encoding="utf-8")
 
         self.assertIn('name="robots" content="noindex, nofollow, noarchive"', html)
         self.assertIn('href="./styles.css"', html)
