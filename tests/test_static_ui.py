@@ -139,6 +139,16 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("cleanImageInBrowser", script)
         self.assertIn("Static GitHub Pages has no API", script)
 
+    def test_static_browser_cleanup_uses_adaptive_shadow_normalization(self):
+        script = (STATIC / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn("function normalizeIllumination", script)
+        self.assertIn("function buildIntegral", script)
+        self.assertIn("function localMean", script)
+        self.assertIn("const normalizedIntegral = buildIntegral(normalizedGray, width, height);", script)
+        self.assertIn("localPaper - 24", script)
+        self.assertNotIn("const out = bright < 188 ? 0 : 255;", script)
+
 
 if __name__ == "__main__":
     unittest.main()

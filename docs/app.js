@@ -211,37 +211,120 @@ function loadImage(file) {
   });
 }
 
-function autoContrast(value, low = 18, high = 242) {
-  return Math.max(0, Math.min(255, ((value - low) * 255) / Math.max(1, high - low)));
+function clampByte(value) {
+  return Math.max(0, Math.min(255, value));
+}
+
+function percentile(values, fraction) {
+  if (!values.length) return 0;
+  values.sort((a, b) => a - b);
+  return values[Math.min(values.length - 1, Math.max(0, Math.floor((values.length - 1) * fraction)))];
+}
+
+function stretchValue(value, low, high) {
+  return clampByte(((value - low) * 255) / Math.max(1, high - low));
+}
+
+function channelStats(values) {
+  const sample = [];
+  const step = Math.max(1, Math.floor(values.length / 20000));
+  for (let i = 0; i < values.length; i += step) sample.push(values[i]);
+  return { low: percentile(sample, 0.02), high: percentile(sample, 0.98) };
+}
+
+function buildIntegral(values, width, height) {
+  const integral = new Float64Array((width + 1) * (height + 1));
+  for (let y = 0; y < height; y += 1) {
+    let rowSum = 0;
+    const row = (y + 1) * (width + 1);
+    const prev = y * (width + 1);
+    for (let x = 0; x < width; x += 1) {
+      rowSum += values[y * width + x];
+      integral[row + x + 1] = integral[prev + x + 1] + rowSum;
+    }
+  }
+  return integral;
+}
+
+function localMean(integral, width, height, x, y, radius) {
+  const x1 = Math.max(0, x - radius);
+  const y1 = Math.max(0, y - radius);
+  const x2 = Math.min(width - 1, x + radius);
+  const y2 = Math.min(height - 1, y + radius);
+  const stride = width + 1;
+  const sum = integral[(y2 + 1) * stride + x2 + 1]
+    - integral[y1 * stride + x2 + 1]
+    - integral[(y2 + 1) * stride + x1]
+    + integral[y1 * stride + x1];
+  return sum / ((x2 - x1 + 1) * (y2 - y1 + 1));
+}
+
+function makeLuminance(data) {
+  const gray = new Float32Array(data.length / 4);
+  for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+    gray[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+  }
+  return gray;
+}
+
+function normalizeIllumination(values, width, height) {
+  const radius = Math.max(12, Math.round(Math.min(width, height) / 38));
+  const integral = buildIntegral(values, width, height);
+  const normalized = new Float32Array(values.length);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const p = y * width + x;
+      const background = Math.max(1, localMean(integral, width, height, x, y, radius));
+      normalized[p] = clampByte((values[p] / background) * 245);
+    }
+  }
+  return normalized;
 }
 
 function cleanPixels(imageData, mode) {
   const data = imageData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-    const bright = autoContrast(gray);
-    if (mode === 'clean_bw') {
-      const out = bright < 188 ? 0 : 255;
+  const { width, height } = imageData;
+  const gray = makeLuminance(data);
+  const normalizedGray = normalizeIllumination(gray, width, height);
+  const grayStats = channelStats(normalizedGray);
+
+  if (mode === 'clean_bw') {
+    const normalizedIntegral = buildIntegral(normalizedGray, width, height);
+    for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+      const bright = stretchValue(normalizedGray[p], grayStats.low, grayStats.high);
+      const localPaper = localMean(normalizedIntegral, width, height, p % width, Math.floor(p / width), 10);
+      const threshold = Math.max(135, Math.min(210, localPaper - 24));
+      const out = bright < threshold ? 0 : 255;
       data[i] = out; data[i + 1] = out; data[i + 2] = out;
-    } else if (mode === 'soft_gray') {
-      const out = Math.max(0, Math.min(255, bright * 1.08));
-      data[i] = out; data[i + 1] = out; data[i + 2] = out;
-    } else if (mode === 'photo_xerox') {
-      data[i] = Math.max(0, Math.min(255, r * 1.06 + 8));
-      data[i + 1] = Math.max(0, Math.min(255, g * 1.06 + 8));
-      data[i + 2] = Math.max(0, Math.min(255, b * 1.06 + 8));
-    } else {
-      data[i] = autoContrast(r, 12, 245);
-      data[i + 1] = autoContrast(g, 12, 245);
-      data[i + 2] = autoContrast(b, 12, 245);
-      if (mode === 'color_xerox') {
-        data[i] = Math.max(0, Math.min(255, data[i] * 1.08));
-        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] * 1.08));
-        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] * 1.08));
-      }
+    }
+    return imageData;
+  }
+
+  if (mode === 'soft_gray') {
+    for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+      const out = stretchValue(normalizedGray[p], grayStats.low, grayStats.high) * 1.04;
+      data[i] = clampByte(out); data[i + 1] = clampByte(out); data[i + 2] = clampByte(out);
+    }
+    return imageData;
+  }
+
+  if (mode === 'photo_xerox') {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = clampByte(data[i] * 1.05 + 10);
+      data[i + 1] = clampByte(data[i + 1] * 1.05 + 10);
+      data[i + 2] = clampByte(data[i + 2] * 1.05 + 10);
+    }
+    return imageData;
+  }
+
+  for (let channel = 0; channel < 3; channel += 1) {
+    const values = new Float32Array(data.length / 4);
+    for (let i = channel, p = 0; i < data.length; i += 4, p += 1) values[p] = data[i];
+    const normalized = normalizeIllumination(values, width, height);
+    const stats = channelStats(normalized);
+    for (let i = channel, p = 0; i < data.length; i += 4, p += 1) {
+      const boost = mode === 'color_xerox' ? 1.08 : 1;
+      data[i] = clampByte(stretchValue(normalized[p], stats.low, stats.high) * boost);
     }
   }
   return imageData;
