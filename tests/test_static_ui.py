@@ -135,7 +135,7 @@ class StaticUiTests(unittest.TestCase):
 
         self.assertIn('name="robots" content="noindex, nofollow, noarchive"', html)
         self.assertIn('href="./styles.css"', html)
-        self.assertIn('src="./app.js"', html)
+        self.assertRegex(html, r'src="\./app\.js(?:\?v=[^"]+)?"')
         self.assertIn("cleanImageInBrowser", script)
         self.assertIn("Static GitHub Pages has no API", script)
 
