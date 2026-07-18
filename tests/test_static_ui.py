@@ -129,6 +129,16 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("position: sticky", css)
         self.assertIn("top: 0", css)
 
+    def test_github_pages_build_is_noindex_and_relative(self):
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        script = (STATIC / "app.js").read_text(encoding="utf-8")
+
+        self.assertIn('name="robots" content="noindex, nofollow, noarchive"', html)
+        self.assertIn('href="./styles.css"', html)
+        self.assertIn('src="./app.js"', html)
+        self.assertIn("cleanImageInBrowser", script)
+        self.assertIn("Static GitHub Pages has no API", script)
+
 
 if __name__ == "__main__":
     unittest.main()
